@@ -9,9 +9,11 @@ library(purrr)
 library(reshape)
 library(lemon)
 library(ggpubr)
+library(ggstance)
 
 ##########################################################################################################################################################
 ########### DATA PREP ####################################################################################################################################
+cols <- c("VT7" = "#35B779FF", "VT10"= "#31688EFF", "VT13" = "#E69F00", "NVT" = "#440154FF")
 
 sero15bcagg <- function(df) { # fn that aggregates serotypes 15B and 15C
   sero15s <- df[startsWith(as.character(df$Serotype), prefix = "15"),]$Serotype
@@ -111,7 +113,8 @@ PCVera <- data.frame(Australia = c("Pre-PCV", "Pre-PCV13", "Post-PCV"),
                      Norway = c(NA, "Pre-PCV13", "Post-PCV"),# "Pre-PCV"
                      USA = c("Pre-PCV", "Pre-PCV13", "Post-PCV"))
 
-pop <- read.csv("Q:/Technical/R/SeroReplacement/Populationvsyr.csv")
+#pop <- read.csv("Q:/Technical/R/SeroReplacement/Populationvsyr.csv")
+pop <- read.csv("Q:/Technical/R/SeroReplacement/IPDincidence.csv")
 pop.allages <- read.csv("Q:/Technical/R/SeroReplacement/Populationvsyr_allages.csv")
 
 VT7 <- c("4", "6B", "9V", "14", "18C", "19F", "23F")
@@ -256,31 +259,8 @@ levels(tot.freq$pcv_era)[match("Pre-PCV13", levels(tot.freq$pcv_era))] <- "Pre-P
 ##########################################################################################################################################################
 ########### OVERALL IPD INCIDENCE PLOT ###################################################################################################################
 
-oz_totIPD <- colSums(australia_agestrat[,3:ncol(australia_agestrat)]) 
-pop[which(pop$Population == "Australia"), c('X1999', 'X2000')] <- NA
-finland_totIPD <- colSums(finland_agestrat[,3:ncol(finland_agestrat)])
-france_totIPD <- colSums(france_agestrat[,3:ncol(france_agestrat)])
-#italy_totIPD <- colSums(italy_eachyr[,3:ncol(italy_eachyr)])
-norway_totIPD <- colSums(norway_agestrat[,3:ncol(norway_agestrat)])
-usa_totIPD <- colSums(usa_agestrat[,3:ncol(usa_agestrat)])
-
-Aus_inc <- (oz_totIPD/(pop[which(pop$Population == "Australia"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
-Fin_inc <- (finland_totIPD/(pop[which(pop$Population == "Finland"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
-Fran_inc <- (france_totIPD/(pop[which(pop$Population == "France"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
-#Ita_inc <- (italy_totIPD/(pop[which(pop$Population == "Italy"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
-Nor_inc <- (norway_totIPD/(pop[which(pop$Population == "Norway"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
-usapop <- pop[which(pop$Population == "USA"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)
-usapop <- usapop[,2:10] # remove years that are not included in IPD data
-USA_inc <- (usa_totIPD/usapop)*100000
-#USA_inc <- (usa_totIPD/(pop[which(pop$Population == "USA"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
-
-overall_inc1 <- #full_join(Ita_inc, Aus_inc) 
-  Aus_inc %>% mutate(Country = c("Australia"))
-overall_inc2 <- full_join(Fran_inc, Fin_inc) %>% mutate(Country = c("France", "Finland"))
-overall_inc3 <- full_join(USA_inc, Nor_inc) %>% mutate(Country = c("USA", "Norway"))
-overall_inc <- bind_rows(overall_inc1, overall_inc2, overall_inc3)
-colnames(overall_inc) <- c(gsub("^X", "", colnames(overall_inc)[1:ncol(overall_inc)-1]), "Country")
-overall_inc_df <- melt(overall_inc)
+colnames(pop) <- c("Country", gsub("^X", "", colnames(pop)[2:ncol(pop)]))
+overall_inc_df <- melt(pop)
 colnames(overall_inc_df) <- c("country", "year", "incidence")
 
 assign_pcvera <- function(df) {
@@ -320,6 +300,34 @@ ggplot(overall_inc_df,aes(x = year, y = incidence, group = country, colour = cou
 # usa_post13 <- overall_inc_df %>% filter(Country == "USA") %>% filter(variable %in% 2010:2013)
 # usapre13.mod <- usa_pre13 %>% mutate(model = purrr::map(data, ~lm(value ~ variable, data = .)))
 # rates <- usapre13.mod %>% filter(!grepl('(Intercept)', term))
+
+# not used: IPD incidence calculation of datasets
+# oz_totIPD <- colSums(australia_agestrat[,3:ncol(australia_agestrat)]) 
+# pop[which(pop$Population == "Australia"), c('X1999', 'X2000')] <- NA
+# finland_totIPD <- colSums(finland_agestrat[,3:ncol(finland_agestrat)])
+# france_totIPD <- colSums(france_agestrat[,3:ncol(france_agestrat)])
+# #italy_totIPD <- colSums(italy_eachyr[,3:ncol(italy_eachyr)])
+# norway_totIPD <- colSums(norway_agestrat[,3:ncol(norway_agestrat)])
+# usa_totIPD <- colSums(usa_agestrat[,3:ncol(usa_agestrat)])
+# 
+# Aus_inc <- (oz_totIPD/(pop[which(pop$Population == "Australia"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
+# Fin_inc <- (finland_totIPD/(pop[which(pop$Population == "Finland"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
+# Fran_inc <- (france_totIPD/(pop[which(pop$Population == "France"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
+# #Ita_inc <- (italy_totIPD/(pop[which(pop$Population == "Italy"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
+# Nor_inc <- (norway_totIPD/(pop[which(pop$Population == "Norway"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
+# usapop <- pop[which(pop$Population == "USA"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)
+# usapop <- usapop[,2:10] # remove years that are not included in IPD data
+# USA_inc <- (usa_totIPD/usapop)*100000
+# #USA_inc <- (usa_totIPD/(pop[which(pop$Population == "USA"),] %>% select_if(function(x) is.na(x) == FALSE & map(x, is.factor) == FALSE)))*100000
+# 
+# overall_inc1 <- #full_join(Ita_inc, Aus_inc) 
+#   Aus_inc %>% mutate(Country = c("Australia"))
+# overall_inc2 <- full_join(Fran_inc, Fin_inc) %>% mutate(Country = c("France", "Finland"))
+# overall_inc3 <- full_join(USA_inc, Nor_inc) %>% mutate(Country = c("USA", "Norway"))
+# overall_inc <- bind_rows(overall_inc1, overall_inc2, overall_inc3)
+# colnames(overall_inc) <- c(gsub("^X", "", colnames(overall_inc)[1:ncol(overall_inc)-1]), "Country")
+# overall_inc_df <- melt(overall_inc)
+# colnames(overall_inc_df) <- c("country", "year", "incidence")
 
 ##########################################################################################################################################################
 ########### ODDS RATIO CALCULATION AND PLOTTING ##########################################################################################################
@@ -389,6 +397,11 @@ eachdf_OR <- function(df, country) { # fn to estimate OR for each age group in a
   NVT_pre10 <- lapply(1:n.agegrps, function(x) tryCatch(sum(df_nest$data[[x]][NVT_index[[x]],colnames(df_nest$data[[x]]) %in% pre10_cols]),error = function(e) 0))
   NVT_pre13 <- lapply(1:n.agegrps, function(x) tryCatch(sum(df_nest$data[[x]][NVT_index[[x]],colnames(df_nest$data[[x]]) %in% pre13_cols]),error = function(e) 0))
   NVT_post <- lapply(1:n.agegrps, function(x) tryCatch(sum(df_nest$data[[x]][NVT_index[[x]],colnames(df_nest$data[[x]]) %in% post_cols]),error = function(e) 0))
+  
+  # average incidence for each period
+  
+  
+  
   
   # OR VT7 vs all other serogroup categories for each vaccine
   VT7_PCV7_10_OR <- lapply(lapply(1:n.agegrps, function(x) oddsratio(VT7_pre10[[x]], VT7_pre7[[x]], sum(VT10_pre10[[x]], VT13_pre10[[x]], NVT_pre10[[x]]),
@@ -482,7 +495,8 @@ OR_plot <- function(df_OR, country) { ## Plot OR by age group
     labs(x = "Age group", y = "Odds Ratio", color = "Category", shape = "Vaccine", title = country)+#paste(country, "age-stratified odds ratio", sep = " ")) +
     coord_flip() + #flip axes/graph
     guides(colour = guide_legend(reverse = TRUE), shape = guide_legend(reverse = TRUE)) +
-    scale_color_manual(values=c(VT7 = "#70AD47", VT10 = "#4472C4", VT13 = "#ED7D31", NVT = "black")) + # PCV7 green, PCV10 blue, PCV13 orange
+    scale_color_manual(values=c(VT7 = "#35B779FF", VT10= "#31688EFF", VT13 = "#E69F00", NVT = "#440154FF")) +
+      #VT7 = "#70AD47", VT10 = "#4472C4", VT13 = "#ED7D31", NVT = "darkgrey")) + # PCV7 green, PCV10 blue, PCV13 orange
     theme_bw() + theme_light()
   
   #ggplot(data = df_OR) +
@@ -496,11 +510,29 @@ OR_plot <- function(df_OR, country) { ## Plot OR by age group
   #theme_bw() + theme_light()
 }
 
+OR_plot <- function(df_OR, country) { ## Plot OR by age group
+  df_OR$Age.group <- factor(df_OR$Age.group, levels = rev(levels(df_OR$Age.group)))
+  ggplot(data = df_OR, aes(x = OR, y = Age.group, col = factor(Category, levels = rev(levels(Category))), group = factor(Category, levels = rev(levels(Category))))) + 
+    geom_errorbarh(aes(xmin = CI.low, xmax = CI.high), height = 0, position = position_dodgev(height = 0.5)) +
+    geom_point(aes(shape = factor(Vaccine, levels = rev(levels(Vaccine)))), position = position_dodgev(height = 0.5)) +
+    scale_shape_manual(values = c(PCV13 = 15, PCV7 = 1, PCV10 = 17)) +
+    geom_vline(xintercept = 1, color = "black") + scale_x_continuous(trans = 'log10') +
+    labs(y = "Age group", x = "Odds Ratio", color = "Category", shape = "Vaccine", title = country)+
+    guides(colour = guide_legend(reverse = TRUE), shape = guide_legend(reverse = TRUE)) +
+    scale_color_manual(values= cols)+#c(VT7 = "#70AD47", VT10 = "#4472C4", VT13 = "#ED7D31", NVT = "darkgrey")) + # PCV7 green, PCV10 blue, PCV13 orange
+    theme_bw() + theme_light()
+}
+
+
 australia_OR <- eachdf_OR(australia_agestrat, "Australia")
 australia_plot <- OR_plot(australia_OR, "Australia") # pdf dim 5 x 7 in
 
 finland_OR <- eachdf_OR(finland_agestrat, "Finland")
 finland_plot <- OR_plot(finland_OR, "Finland") # pdf dim 5 x 7 in
+
+fakeDSforleg <- rbind(finland_OR, australia_OR)
+fakeplot <- OR_plot(fakeDSforleg, "Australia") 
+legendgrob <- g_legend(fakeplot+theme(legend.box = "horizontal"))
 
 france_OR <- eachdf_OR(france_agestrat, "France")
 france_plot <- OR_plot(france_OR, "France") # pdf dim 5 x 7 in
@@ -514,13 +546,15 @@ norway_plot <- OR_plot(norway_OR, "Norway") # pdf dim 5 x 7 in
 usa_OR <- eachdf_OR(usa_agestrat, "USA")
 usa_plot <- OR_plot(usa_OR, "USA") # pdf dim 5 x 7 in
 
-grid.arrange(australia_plot, finland_plot, france_plot, #italy_plot, 
-             norway_plot, usa_plot, ncol = 2, nrow = 3) # pdf dim 10x8 in
+grid.arrange(australia_plot + theme(legend.position = "none"), finland_plot+ theme(legend.position = "none"), 
+             france_plot+ theme(legend.position = "none"), #italy_plot, 
+             norway_plot+ theme(legend.position = "none"), usa_plot+ theme(legend.position = "none"), 
+             legend= legendgrob, ncol = 3, nrow = 2) # pdf dim 6 x 9
 
 ##########################################################################################################################################################
 ########### SIMPSON'S DIVERSITY INDEX ####################################################################################################################
 
-setwd("Q:/Technical/R/SeroReplacement/RankFreq & Simpson Diversity/Datasets")
+setwd("Q:/Technical/R/SeroReplacement/RankFreq - Simpson Diversity")
 
 calc_SimpsDiv <- function(isolates){ # function to calculate simpson's diversity given the list of isolates
   N <- sum(isolates)  #sum of all isolates
@@ -543,9 +577,9 @@ plot_SDI_strat <- function(df, country) { # plot Simpson's Diversity Index for a
   ggplot(data = df, aes(x = Year, y = div_ind)) +
     geom_errorbar(aes(ymin = CI_low, ymax = CI_high), width = 0.01) +
     geom_point() +
-    geom_point(data = df[which(df$Year == PCVintro[country,]$PCV7intro),], aes(x = Year, y = div_ind), colour = "#70AD47") +
-    geom_point(data = df[which(df$Year == PCVintro[country,]$PCV10intro),], aes(x = Year, y = div_ind), colour = "#4472C4") +
-    geom_point(data = df[which(df$Year == PCVintro[country,]$PCV13intro),], aes(x = Year, y = div_ind), colour = "#ED7D31") +
+    geom_point(data = df[which(df$Year == PCVintro[country,]$PCV7intro),], aes(x = Year, y = div_ind), colour = "#35B779FF") + #"#70AD47") +
+    geom_point(data = df[which(df$Year == PCVintro[country,]$PCV10intro),], aes(x = Year, y = div_ind), colour = "#31688EFF") + #"#4472C4") +
+    geom_point(data = df[which(df$Year == PCVintro[country,]$PCV13intro),], aes(x = Year, y = div_ind), colour = "#E69F00") + #"#ED7D31") +
     labs(x = "Year", y = "Simpson's Diversity Index", title = paste(country, df$Age.group[1], "Simpson Diversity Index", sep = " ")) +
     theme_light()
 }
@@ -557,21 +591,23 @@ plot_SDI_strat_combo <- function(df, country) { # plot Simpson's Diversity Index
   PCV7intro <- PCVintro[country,]$PCV7intro
   PCV10intro <- PCVintro[country,]$PCV10intro
   PCV13intro <- PCVintro[country,]$PCV13intro
+  #df$Age.group <- factor(df$Age.group, labels = c('Children', 'Adults')) #comment out for age stratified
   
   rectang <- data.frame(x1 = c(PCV7intro, PCV7intro, PCV10intro, PCV13intro), 
                         x2 = c(PCV10intro, PCV13intro, max.yr, max.yr), 
                         y1 = c(-Inf, -Inf, -Inf, -Inf), y2 = c(Inf, Inf, Inf, Inf), 
-                        t = c("PCV7 implementation", "PCV7 implementation", "PCV10 implementation", "PCV13 implementation"))
-  rectang$t <- factor(rectang$t, levels = c("PCV7 implementation", "PCV10 implementation", "PCV13 implementation"))
+                        t = c("PCV7", "PCV7", "PCV10", "PCV13"))
+  rectang$t <- factor(rectang$t, levels = c("PCV7", "PCV10", "PCV13"), labels = c('PCV7', 'PCV10/13', 'PCV10/13'))
   rectang <- na.omit(rectang)
-  rectang.col <- c("PCV7 implementation"="#70AD47", "PCV7 implementation"="#70AD47", "PCV10 implementation"="#4472C4", "PCV13 implementation"="#ED7D31")
+  rectang.col <- c("PCV7"="grey65", "PCV7"="grey65", "PCV10"="grey20", "PCV13"="grey20", "PCV10/13" = "grey20")
   
   ggplot() +
     geom_rect(data = rectang, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2, fill = t), alpha = 0.3) + 
     scale_fill_manual("PCV era", values = c(rectang.col)) + 
     geom_errorbar(data = df, aes(x = Year, ymin = CI_low, ymax = CI_high, colour = Age.group), width = 0.01) +
     geom_point(data = df, aes(x = Year, y = div_ind, colour = Age.group, shape = Age.group)) +
-    scale_shape_manual(values = c(0, 1, 2, 15, 16, 17)) +
+    #scale_shape_manual(values = c(0, 1, 2, 15, 16, 17)) +
+    scale_colour_manual(values = c("#E69F00", "deepskyblue4"))+
     labs(x = "Year", y = "Simpson's Diversity Index", title = paste(country, "Simpson Diversity Index", sep = " "), shape = "Age Group", colour = "Age Group",
          fill = "PCV era") +
     coord_cartesian(xlim = c(startyr, max.yr))+ 
@@ -685,8 +721,20 @@ usa_plot <- plot_SDI_strat(usa_SDI[[1]], "USA")
 ## all combo plots into one
 grid.arrange(oz_allage, finland_allage, france_allage, #italy_allage, 
              norway_allage, usa_allage, ncol = 2, nrow = 3) # pdf dim 9x17 in
-grid.arrange(oz_18_SDI_plot, finland_18_SDI_plot, france_allage, #italy_allage, 
-             norway_18_SDI_plot, usa_18_SDI_plot, ncol = 2, nrow = 3) # pdf dim 9x17 in
+grid.arrange(oz_18_SDI_plot+theme(legend.position = 'none'), finland_18_SDI_plot+theme(legend.position = 'none'), 
+             france_allage+theme(legend.position = 'none'), norway_18_SDI_plot+theme(legend.position = 'none'), 
+             usa_18_SDI_plot+theme(legend.position = 'none'), 
+             ncol = 2, nrow = 3) # pdf dim 9x17 in
+
+sharedleg <- get_legend(oz_18_SDI_plot+theme(legend.box = 'horizontal'))
+SDI.path <- file.path("Q:","Technical","R","SeroReplacement","RankFreq - Simpson Diversity", paste("Fig2 - SDI children adults", ".pdf", sep=""))
+pdf(SDI.path, width = 7, height = 6)
+grid.arrange(oz_18_SDI_plot+theme(legend.position = 'none') + labs(y = ""), 
+             finland_18_SDI_plot+theme(legend.position = 'none') + labs(y = ""), 
+             france_allage+theme(legend.position = 'none'), 
+             norway_18_SDI_plot+theme(legend.position = 'none') + labs(y = ""), 
+             usa_18_SDI_plot+theme(legend.position = 'none') + labs(y = ""), sharedleg, ncol = 2, nrow = 3)
+dev.off()
 
 # consolidated SDI for Australia + France + Norway post-PCV7 and post-PCV13 comparison
 combo_aus <- oz_18
@@ -774,13 +822,18 @@ adults_PCV13_SDI$Vaccination <- "PCV13"
 adults_PCV13_SDI$Year_post_vaccination <- 0:(nrow(adults_PCV13_SDI)-1)
 
 SDI_combined_df <- bind_rows(children_PCV7_SDI, children_PCV13_SDI, adults_PCV7_SDI, adults_PCV13_SDI)
-SDI_combined_df$Age.group <- factor(SDI_combined_df$Age.group, levels = c("children", "adults"))
+SDI_combined_df$Age.group <- factor(SDI_combined_df$Age.group, levels = c("children", "adults"), labels = c("Children", "Adults"))
 SDI_combined_df$Vaccination <- factor(SDI_combined_df$Vaccination, levels = c("PCV7", "PCV13"))
-ggplot(SDI_combined_df) + geom_point(aes(x = Year_post_vaccination, y = div_ind, colour = Age.group, shape = Vaccination), size = 2) + 
+pooledcountries <- ggplot(SDI_combined_df) + geom_point(aes(x = Year_post_vaccination, y = div_ind, colour = Age.group, shape = Vaccination), size = 2) + 
   geom_errorbar(aes(x = Year_post_vaccination, ymin = CI_low, ymax = CI_high, colour = Age.group), width = 0.05) + 
   geom_line(aes(x = Year_post_vaccination, y = div_ind, colour = Age.group, linetype = Vaccination)) + 
+  scale_colour_manual(values = c("#E69F00", "deepskyblue4")) + labs(colour = "Age group", shape = 'Vaccine', linetype = 'Vaccine') +
   theme_minimal() + theme_bw() + xlab("Years post-vaccination") + ylab("Simpson's Diversity Index") 
 
+pooled.path <- file.path("Q:","Technical","R","SeroReplacement","RankFreq - Simpson Diversity", paste("Fig4 - pooled countries", ".pdf", sep=""))
+pdf(pooled.path, width = 5, height = 3)
+print(pooledcountries)
+dev.off()
 
 ##########################################################################################################################################################
 ########### COMPARISON MAJOR IPD-CAUSING SEROTYPES #######################################################################################################
@@ -819,6 +872,7 @@ serorank <- function(df, country){ # function that takes dataframe and age group
   topSero[[2]] <- c(as.character(PCV_eras[2]), as.character(topSero[[2]]), rep(NA, max.len - length(topSero[[2]])))
   topSero[[3]] <- c(as.character(PCV_eras[3]), as.character(topSero[[3]]), rep(NA, max.len - length(topSero[[3]])))
   
+  # x-axis alignment of text
   x_ind <- c(1.4, 2, 2.6)
   if (length(PCV_eras) > 2) {x_ind} else {x_ind[2] <- x_ind[3]}
     
@@ -834,7 +888,8 @@ serorank <- function(df, country){ # function that takes dataframe and age group
   DF$cat[!(DF$g %in% c(VT7, VT10, VT13))] <- "NVT"
   DF$cat[DF$g %in% PCV_eras] <- "pcv_eras"
   
-  path.cols <- c("VT7" = "#70AD47", "VT10" = "#4472C4", "VT13" = "#ED7D31", "NVT" = "black", "pcv_eras" = "white")
+  #path.cols <- c("VT7" = "#70AD47", "VT10" = "#4472C4", "VT13" = "#ED7D31", "NVT" = "black", "pcv_eras" = "white")
+  path.cols <- c("VT7" = "#35B779FF", "VT10"= "#31688EFF", "VT13" = "#E69F00", "NVT" = "#440154FF", "pcv_eras" = "white")
   
   titleseq <- data.frame(x = unique(c(x_ind[1], x_ind[2], x_ind[3])), y = c(rep(DF$y[1], length(PCV_eras))))
   
@@ -846,7 +901,7 @@ serorank <- function(df, country){ # function that takes dataframe and age group
     scale_fill_manual(values = path.cols) +
     
     theme_minimal() +
-    ggtitle(paste(country, unique(df$Age.group), "Serotype Ranking", sep = " ")) +
+    ggtitle(paste(country, unique(df$Age.group), sep = " ")) +
     scale_y_continuous(minor_breaks = seq(0,11, 1.5)) +
     theme(axis.title = element_blank(),
           axis.text = element_blank(),
@@ -885,11 +940,11 @@ rankfreqplot <- function(df, country, agegroup, PCV_eras, positionheight) { # fu
       geom_point(data = nonjitteredpts, aes(x = rank, y = IPD.cases, colour = cat, group = cat)) + 
       geom_point(data = jitteredpts, aes(x = rank, y = IPD.cases, colour = cat, group = cat), position=position_dodgev(height=positionheight)) +
       geom_line(data = df_rank[[x]], aes(x = rank, y = as.numeric(cumfreq)*max(ymax)), size = 0.8, alpha = 0.7, linetype = "dashed") + 
-      scale_colour_manual(breaks = c("VT7","VT10","VT13","NVT"), values = c("VT7" = "#70AD47", "VT10" = "#4472C4", "VT13" = "#ED7D31", "NVT" = "black")) +
-      scale_y_continuous(sec.axis = sec_axis(~./max(ymax), name = "Cumulative Frequency")) + theme_light() + theme_bw() +
+      scale_colour_manual(breaks = c("VT7","VT10","VT13","NVT"), values = cols) + #c("VT7" = "#70AD47", "VT10" = "#4472C4", "VT13" = "#ED7D31", "NVT" = "black")) +
+      scale_y_continuous(sec.axis = sec_axis(~./max(ymax))) + theme_light() + theme_bw() + # name = "Cumulative Frequency"
       labs(x = "Rank", y = "IPD cases", title = paste(country, agegroup, PCV_eras[x], sep = " "), colour = "Category")})
   
-  #return(newrankfreqplots)
+  return(newrankfreqplots)
 }
 
 
@@ -921,17 +976,21 @@ ausmore18.alleras <- ggarrange(ausmore18.rankfreqplot[[1]]+coord_cartesian(xlim 
                                common.legend = TRUE, legend = "bottom", ncol = 3, nrow = 1)# pdf dim 3x12 in
 
 ausranks <- grid.arrange(ausless18.plot, ausmore18.plot, ncol = 2, nrow = 1) # pdf dim 5x7 in
-ggarrange(ausless18.rankfreqplot[[1]]+ coord_cartesian(xlim = c(0,50), ylim = c(0,1000)), 
-          ausless18.rankfreqplot[[2]]+ labs(title = ausless18.era[2]) +
+ausrankfreqgrob <- ggarrange(ausless18.rankfreqplot[[1]]+ labs(x = "", y = "") + coord_cartesian(xlim = c(0,50), ylim = c(0,1000)), 
+          ausless18.rankfreqplot[[2]]+ labs(title = ausless18.era[2],x = "", y = "") +
             coord_cartesian(xlim = c(0,50), ylim = c(0,1000)), 
-          ausless18.rankfreqplot[[3]]+ labs(title = ausless18.era[3]) + 
+          ausless18.rankfreqplot[[3]]+ labs(title = ausless18.era[3],x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(0,1000)), 
-          ausmore18.rankfreqplot[[1]]+coord_cartesian(xlim = c(0,50), ylim = c(0,1250)), 
-          ausmore18.rankfreqplot[[2]]+ labs(title = ausmore18.era[2]) +
+          ausmore18.rankfreqplot[[1]]+ labs(x = "", y = "")+ coord_cartesian(xlim = c(0,50), ylim = c(0,1250)), 
+          ausmore18.rankfreqplot[[2]]+ labs(title = ausmore18.era[2], x = "", y = "") +
             coord_cartesian(xlim = c(0,50), ylim = c(0,1250)), 
-          ausmore18.rankfreqplot[[3]]+ labs(title = ausmore18.era[3]) +
+          ausmore18.rankfreqplot[[3]]+ labs(title = ausmore18.era[3], x = "", y = "") +
             coord_cartesian(xlim = c(0,50), ylim = c(0,1250)), 
           common.legend = TRUE, legend = "bottom", ncol = 3, nrow = 2) # pdf dim 6x12 in
+annotate_figure(ausrankfreqgrob, 
+                left = text_grob("IPD cases", rot = 90),
+                right = text_grob("Cumulative frequency", rot = 270))#,
+                #fig.lab = "A", fig.lab.face = "bold") # pdf dim 4.5 x 9 in
 
 # print cumulative freq to CSV - need df_rank to be assigned to global environment within rankfreqplot fn
 #lapply(df_rank, function(x) write.table(data.frame(x), 'test.csv', append = T, sep =','))
@@ -943,7 +1002,7 @@ finless18.uniquesero <- unique(finless18.plot$data[,4])
 finless18.rank <- agegrp_vcn
 finless18.era <- PCV_eras
 finless18.rankfreqplot <- rankfreqplot(df = finless18.rank, country = "Finland", agegroup = "< 18 yrs", PCV_eras = finless18.era, positionheight = 15)
-finless18.alleras <- ggarrange(finless18.rankfreqplot[[1]] +
+finless18.alleras <- ggarrange(finless18.rankfreqplot[[1]] + 
                                     coord_cartesian(xlim = c(0,50), ylim = c(-25,190)), 
                                   finless18.rankfreqplot[[2]]+ labs(title = finless18.era[2]) + 
                                     coord_cartesian(xlim = c(0,50), ylim = c(-25,190)), 
@@ -955,22 +1014,26 @@ finmore18.uniquesero <- unique(finmore18.plot$data[,4])
 finmore18.rank <- agegrp_vcn
 finmore18.era <- PCV_eras
 finmore18.rankfreqplot <- rankfreqplot(df = finmore18.rank, country = "Finland", agegroup = "> 18 yrs", PCV_eras = finmore18.era, positionheight = 50)
-finmore18.alleras <- ggarrange(finmore18.rankfreqplot[[1]] + 
+finmore18.alleras <- ggarrange(finmore18.rankfreqplot[[1]] +
                                   coord_cartesian(xlim = c(0,50), ylim = c(-25,800)), 
                                finmore18.rankfreqplot[[2]]+ labs(title = finmore18.era[2]) + 
                                     coord_cartesian(xlim = c(0,50), ylim = c(-25,800)), 
                                common.legend = TRUE, legend = "bottom", ncol = 2, nrow = 1)# pdf dim 3x12 in
 
 finranks <- grid.arrange(finless18.plot, finmore18.plot, ncol = 2, nrow = 1) # pdf dim 5x7 in
-ggarrange(finless18.rankfreqplot[[1]] +
+finrankfreqgrob <- ggarrange(finless18.rankfreqplot[[1]] + labs(x = "", y = "") +
             coord_cartesian(xlim = c(0,50), ylim = c(-25,190)), 
-          finless18.rankfreqplot[[2]]+ labs(title = finless18.era[2]) + 
+          finless18.rankfreqplot[[2]]+ labs(title = finless18.era[2], x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(-25,190)), 
-          finmore18.rankfreqplot[[1]] + 
+          finmore18.rankfreqplot[[1]] + labs(x = "", y = "") +
             coord_cartesian(xlim = c(0,50), ylim = c(-25,700)), 
-          finmore18.rankfreqplot[[2]]+ labs(title = finmore18.era[2]) + 
+          finmore18.rankfreqplot[[2]]+ labs(title = finmore18.era[2], x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(-25,700)), 
           common.legend = TRUE, legend = "bottom", ncol = 2, nrow = 2)
+annotate_figure(finrankfreqgrob, 
+                left = text_grob("IPD cases", rot = 90),
+                right = text_grob("Cumulative frequency", rot = 270))#,
+                #fig.lab = "B", fig.lab.face = "bold")
 
 # france
 france_less16 <- france_lessthan16 %>% filter(Serotype != "Other")
@@ -1004,22 +1067,25 @@ francemore16.alleras <- ggarrange(francemore16.rankfreqplot[[1]] +
                                   common.legend = TRUE, legend = "bottom", ncol = 3, nrow = 1) # pdf dim 3x12 in
 
 franranks <- grid.arrange(franceless16.plot, francemore16.plot, ncol = 2, nrow = 1) # pdf dim 5x7 in
-ggarrange(franceless16.rankfreqplot[[1]]+
+franrankfreqgrob <- ggarrange(franceless16.rankfreqplot[[1]] + labs(x = "", y = "") +
             coord_cartesian(xlim = c(0,50), ylim = c(0,400)), 
           franceless16.rankfreqplot[[2]] + 
-            labs(title = franceless16.era[2]) + 
+            labs(title = franceless16.era[2], x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(0,400)), 
-          franceless16.rankfreqplot[[3]]+ labs(title = franceless16.era[3]) + 
+          franceless16.rankfreqplot[[3]]+ labs(title = franceless16.era[3], x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(0,400)),
-          francemore16.rankfreqplot[[1]] +
+          francemore16.rankfreqplot[[1]] + labs(x = "", y = "")+
             coord_cartesian(xlim = c(0,50), ylim = c(0,650)),
           francemore16.rankfreqplot[[2]] +
-            labs(title = francemore16.era[2]) + 
+            labs(title = francemore16.era[2], x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(0,650)), 
-          francemore16.rankfreqplot[[3]]+ labs(title = francemore16.era[3]) + 
+          francemore16.rankfreqplot[[3]]+ labs(title = francemore16.era[3], x = "", y = "") + 
             coord_cartesian(xlim = c(0,50), ylim = c(0,650)), 
           common.legend = TRUE, legend = "bottom", ncol = 3, nrow = 2) # pdf dim 6x12 in
-
+annotate_figure(franrankfreqgrob, 
+                left = text_grob("IPD cases", rot = 90),
+                right = text_grob("Cumulative frequency", rot = 270))#,
+                #fig.lab = "C", fig.lab.face = "bold") # pdf dim 4.5 x 9
 # # italy
 # italy_infants <- italy_inf %>% filter(Serotype != "Others")
 # italy_infants.plot <- serorank(italy_infants, country = "Italy")
@@ -1063,11 +1129,20 @@ normore18.alleras <- ggarrange(normore18.rankfreqplot[[1]] + coord_cartesian(xli
                                common.legend = TRUE, legend = "bottom", ncol = 2, nrow = 1) # pdf dim 3x12 in
 
 norranks <- grid.arrange(norless18.plot, normore18.plot, ncol = 2, nrow = 1) # pdf dim 5x7 in
-ggarrange(norless18.rankfreqplot[[1]] + coord_cartesian(xlim = c(0,50), ylim = c(0,50)), 
-          norless18.rankfreqplot[[2]] + labs(title = norless18.era[2]) + coord_cartesian(xlim = c(0,50), ylim = c(0,50)),
-          normore18.rankfreqplot[[1]] + coord_cartesian(xlim = c(0,50), ylim = c(0,500)), 
-          normore18.rankfreqplot[[2]] + labs(title = normore18.era[2]) + coord_cartesian(xlim = c(0,50), ylim = c(0,500)),
+norrankfreqgrob <- ggarrange(norless18.rankfreqplot[[1]] + labs(x = "", y = "") +
+                               coord_cartesian(xlim = c(0,50), ylim = c(0,50)), 
+          norless18.rankfreqplot[[2]] + labs(title = norless18.era[2],x = "", y = "") + 
+            coord_cartesian(xlim = c(0,50), ylim = c(0,50)),
+          normore18.rankfreqplot[[1]] + labs(x = "", y = "") + 
+            coord_cartesian(xlim = c(0,50), ylim = c(0,500)), 
+          normore18.rankfreqplot[[2]] + labs(title = normore18.era[2], x = "", y = "") + 
+            coord_cartesian(xlim = c(0,50), ylim = c(0,500)),
           common.legend = TRUE, legend = "bottom", ncol =2, nrow = 2) # pdf dim 6x10 in
+annotate_figure(norrankfreqgrob, 
+                left = text_grob("IPD cases", rot = 90),
+                right = text_grob("Cumulative frequency", rot = 270))#,
+                #fig.lab = "D", fig.lab.face = "bold") # pdf dim 4.5 x 9
+
 
 # usa
 usaless18.plot <- serorank(usa_lessthan18, country = "USA")
@@ -1089,13 +1164,24 @@ usamore18.alleras <- ggarrange(usamore18.rankfreqplot[[1]]+coord_cartesian(xlim 
                                common.legend = TRUE, legend = "bottom", ncol = 2, nrow = 1)# pdf dim 3x12 in
 
 usaranks <- grid.arrange(usaless18.plot, usamore18.plot, ncol = 2, nrow = 1) # pdf dim 5x7 in
-ggarrange(usaless18.rankfreqplot[[1]]+coord_cartesian(xlim = c(0,25), ylim = c(0,1150)),
-          usaless18.rankfreqplot[[2]]+ labs(title = usaless18.era[2]) + coord_cartesian(xlim = c(0,25), ylim = c(0,1150)), 
-          usamore18.rankfreqplot[[1]]+coord_cartesian(xlim = c(0,25), ylim = c(0,2700)), 
-          usamore18.rankfreqplot[[2]]+ labs(title = usamore18.era[2]) + coord_cartesian(xlim = c(0,25), ylim = c(0,2700)), 
+usarankfreqgrob <- ggarrange(usaless18.rankfreqplot[[1]]+ labs(x = "", y = "") + 
+                               coord_cartesian(xlim = c(0,25), ylim = c(0,1150)),
+          usaless18.rankfreqplot[[2]]+ labs(title = usaless18.era[2],x = "", y = "") + 
+            coord_cartesian(xlim = c(0,25), ylim = c(0,1150)), 
+          usamore18.rankfreqplot[[1]]+ labs(x = "", y = "") + coord_cartesian(xlim = c(0,25), ylim = c(0,2700)), 
+          usamore18.rankfreqplot[[2]]+ labs(title = usamore18.era[2], x = "", y = "") + 
+            coord_cartesian(xlim = c(0,25), ylim = c(0,2700)), 
           common.legend = TRUE, legend = "bottom", ncol = 2, nrow = 2) # pdf dim 6x12 in
+annotate_figure(usarankfreqgrob, 
+                left = text_grob("IPD cases", rot = 90),
+                right = text_grob("Cumulative frequency", rot = 270))#,
+                #fig.lab = "E", fig.lab.face = "bold") # pdf dim 4.5 x 9
 
-grid.arrange(ausranks, finranks, franranks, norranks, usaranks, ncol = 2, nrow = 3)
+grid.arrange(ausranks, finranks, franranks, norranks, usaranks, #labels = c("A","B", "C", "D", "E"), 
+             ncol = 2, nrow = 3) # pdf dim 
+
+ggarrange(ausranks, finranks, franranks, norranks, usaranks, labels = c("A","B", "C", "D", "E"), 
+             ncol = 2, nrow = 3)
 
 major.sero <- c(levels(ausless18.uniquesero), levels(ausmore18.uniquesero), levels(finless18.uniquesero), levels(finmore18.uniquesero), 
                 levels(franceless16.uniquesero), levels(francemore16.uniquesero), #levels(italyinf.uniquesero), 
@@ -1219,12 +1305,19 @@ inc.rates <- function(df, agegrp) { # function that estimates crude rate of grow
   df.tibs <- df.cases %>% group_by(Serotype, Age.group, agecat, country, pcv_era) %>% nest()
   #df.tibs.mod <- df.tibs %>% mutate(model = purrr::map(data, ~glm(dis.cases ~ Year + offset(log(population/100000)), family = poisson, data = .)))
   df.tibs.mod <- df.tibs %>% mutate(model = purrr::map(data, ~lm((dis.cases/population)*100000 ~ Year, data = .)))
-  df.tibs.summ <- df.tibs.mod %>% unnest(model %>% map(broom::glance))
-  df.tibs.coeff <- data.frame(df.tibs.summ %>% unnest(model %>% purrr::map(broom::tidy)))
-  bh <- p.adjust(df.tibs.coeff$p.value, method="BH") # Benjamin & Hochberg method - method to control false discovery rate
-  rates <- df.tibs.coeff %>% filter(!grepl('(Intercept)', term))
-  #mean(bh, na.rm = TRUE) # 0.2797367
+  #df.tibs.summ <- df.tibs.mod %>% unnest(model %>% map(broom::glance))
+  #df.tibs.coeff <- data.frame(df.tibs.summ %>% unnest(model %>% purrr::map(broom::tidy)))
+  #bh <- p.adjust(df.tibs.coeff$p.value, method="BH") # Benjamin & Hochberg method - method to control false discovery rate
   
+  df.tibs.summ <- bind_rows(df.tibs.mod$model %>% map(broom::glance))
+  df.tibs.coeff <- bind_rows(df.tibs.mod$model %>% map(broom::tidy))
+    
+  rates <- df.tibs.coeff %>% filter(!grepl('(Intercept)', term))
+  
+  bh <- p.adjust(rates$p.value, method="BH") # Benjamin & Hochberg method - method to control false discovery rate
+  rates$p.value <- bh
+  #mean(bh, na.rm = TRUE) # 0.2797367
+  rates <- bind_cols(df.tibs, rates)
   return(rates)
 }
 
@@ -1245,11 +1338,10 @@ country.rateplotz <- function(countrydf) { ## function to plot each country's se
   countrydf$cat[!(countrydf$Serotype %in% c(VT7, VT10, VT13))] <- "NVT"
   countrydf$cat <- factor(countrydf$cat, levels = c("VT7", "VT10", "VT13", "NVT"))
   
-  
-  countrydf$cols[countrydf$Serotype %in% VT7] <- "#70AD47"
-  countrydf$cols[countrydf$Serotype %in% VT10] <- "#4472C4"
-  countrydf$cols[countrydf$Serotype %in% VT13] <- "#ED7D31"
-  countrydf$cols[!(countrydf$Serotype %in% c(VT7, VT10, VT13))] <- "black"
+  countrydf$cols[countrydf$Serotype %in% VT7] <- "#35B779FF" #"#70AD47"
+  countrydf$cols[countrydf$Serotype %in% VT10] <- "#31688EFF" #"#4472C4"
+  countrydf$cols[countrydf$Serotype %in% VT13] <- "#E69F00" #"#ED7D31"
+  countrydf$cols[!(countrydf$Serotype %in% c(VT7, VT10, VT13))] <- "#440154FF"#"black"
   
   countrydf.nest <- countrydf %>% group_by(Serotype, cols) %>% nest()
   countrydf.nest <- countrydf.nest[,-3]
@@ -1318,19 +1410,24 @@ dev.off()
 
 totrates <- bind_rows(tot.rates.children, tot.rates.adults)
 
-aus.rateplots <- grid.arrange(country.rates.children[[1]]+labs(x = NULL, title = "Australia Children"), 
-                              country.rates.adults[[1]] + labs(title = "Australia Adults"), nrow = 2) # pdf dim 6 x 15
+aus.rateplots <- ggarrange(country.rates.children[[1]]+labs(x = NULL, title = "Australia Children"), 
+                              country.rates.adults[[1]] + labs(title = "Australia Adults"), nrow = 2,
+                              common.legend = TRUE, legend = "right") # pdf dim 6 x 12
 
-fin.rateplots <- grid.arrange(country.rates.children[[2]]+labs(x = NULL, title = "Finland Children"), 
-                              country.rates.adults[[2]] + labs(title = "Finland Adults"), nrow = 2)
+fin.rateplots <- ggarrange(country.rates.children[[2]]+labs(x = NULL, title = "Finland Children"), 
+                              country.rates.adults[[2]] + labs(title = "Finland Adults"), nrow = 2,
+                              common.legend = TRUE, legend = "right")
 
-fra.rateplots <- grid.arrange(country.rates.children[[3]]+labs(x = NULL, title = "France Children"), 
-                              country.rates.adults[[3]] + labs(title = "France Adults"), nrow = 2)
+fra.rateplots <- ggarrange(country.rates.children[[3]]+labs(x = NULL, title = "France Children"),
+                           country.rates.adults[[3]] + labs(title = "France Adults"), nrow = 2,
+                           common.legend = TRUE, legend = "right")
 
-nor.rateplots <- grid.arrange(country.rates.children[[5]]+labs(x = NULL, title = "Norway Children"), 
-                              country.rates.adults[[4]] + labs(title = "Norway Adults"), nrow = 2)
+nor.rateplots <- ggarrange(country.rates.children[[4]]+labs(x = NULL, title = "Norway Children"), 
+                              country.rates.adults[[4]] + labs(title = "Norway Adults"), nrow = 2,
+                           common.legend = TRUE, legend = "right")
 
-usa.rateplots <- grid.arrange(country.rates.children[[6]]+labs(x = NULL, title = "USA Children"), 
-                              country.rates.adults[[5]] + labs(title = "USA Adults"), nrow = 2)
+usa.rateplots <- ggarrange(country.rates.children[[5]]+labs(x = NULL, title = "USA Children"), 
+                              country.rates.adults[[5]] + labs(title = "USA Adults"), nrow = 2,
+                           common.legend = TRUE, legend = "right")
 
-ita.rateplots <- country.rates.children[[4]] + labs(title = "Italy Children")
+#ita.rateplots <- country.rates.children[[4]] + labs(title = "Italy Children")
