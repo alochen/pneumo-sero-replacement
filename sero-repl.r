@@ -591,7 +591,7 @@ plot_SDI_strat_combo <- function(df, country) { # plot Simpson's Diversity Index
   PCV7intro <- PCVintro[country,]$PCV7intro
   PCV10intro <- PCVintro[country,]$PCV10intro
   PCV13intro <- PCVintro[country,]$PCV13intro
-  #df$Age.group <- factor(df$Age.group, labels = c('Children', 'Adults')) #comment out for age stratified
+  df$Age.group <- factor(df$Age.group, labels = c('Children', 'Adults')) #comment out for age stratified
   
   rectang <- data.frame(x1 = c(PCV7intro, PCV7intro, PCV10intro, PCV13intro), 
                         x2 = c(PCV10intro, PCV13intro, max.yr, max.yr), 
@@ -727,7 +727,7 @@ grid.arrange(oz_18_SDI_plot+theme(legend.position = 'none'), finland_18_SDI_plot
              ncol = 2, nrow = 3) # pdf dim 9x17 in
 
 sharedleg <- get_legend(oz_18_SDI_plot+theme(legend.box = 'horizontal'))
-SDI.path <- file.path("Q:","Technical","R","SeroReplacement","RankFreq - Simpson Diversity", paste("Fig2 - SDI children adults", ".pdf", sep=""))
+SDI.path <- file.path("Q:","Technical","R","SeroReplacement","RankFreq - Simpson Diversity", paste("Fig2 - SDI children adults- leg2", ".pdf", sep=""))
 pdf(SDI.path, width = 7, height = 6)
 grid.arrange(oz_18_SDI_plot+theme(legend.position = 'none') + labs(y = ""), 
              finland_18_SDI_plot+theme(legend.position = 'none') + labs(y = ""), 
